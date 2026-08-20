@@ -10,7 +10,7 @@
     <!-- Firebase App (v9 Modular CDN) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, sendEmailVerification } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
         // Firebase configuration
         const firebaseConfig = {
@@ -27,51 +27,120 @@
         const auth = getAuth(app);
 
         let isSignUpMode = false;
+
         window.toggleAuthMode = function() {
             isSignUpMode = !isSignUpMode;
-            document.getElementById('authTitle').innerText = isSignUpMode ? "Create Account" : "Kcrish Tally-XML Automation";
-            document.getElementById('authSubtitle').innerText = isSignUpMode ? "Register for free access" : "Professional Excel to Tally Integration Suite";
-            document.getElementById('authActionBtn').innerText = isSignUpMode ? "Sign Up" : "Login";
-            document.getElementById('authToggleText').innerText = isSignUpMode ? "Already have an account? Login" : "Create a new account";
+            document.getElementById('authTitle').innerText = isSignUpMode ? "Create Enterprise Account" : "Kcrish Tally-XML Automation";
+            document.getElementById('authSubtitle').innerText = isSignUpMode ? "Register securely for instant automation access" : "Professional Excel to Tally Integration Suite";
+            document.getElementById('authActionBtnText').innerText = isSignUpMode ? "Create Account" : "Sign In to Workspace";
+            document.getElementById('authToggleText').innerHTML = isSignUpMode ? "Already have an account? <b>Sign In</b>" : "Don't have an account? <b>Create one</b>";
             document.getElementById('forgotPassWrapper').style.display = isSignUpMode ? "none" : "block";
+            clearError();
+        }
+
+        function setLoading(isLoading) {
+            let btn = document.getElementById('authActionBtn');
+            let spinner = document.getElementById('btnSpinner');
+            if (isLoading) {
+                btn.disabled = true;
+                btn.style.opacity = '0.7';
+                spinner.style.display = 'inline-block';
+            } else {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                spinner.style.display = 'none';
+            }
+        }
+
+        function showError(msg) {
+            let box = document.getElementById('authErrorMsg');
+            box.innerText = msg;
+            box.style.display = 'block';
+        }
+
+        function clearError() {
+            let box = document.getElementById('authErrorMsg');
+            box.innerText = '';
+            box.style.display = 'none';
         }
 
         window.handleAuthAction = function() {
-            let email = document.getElementById('authEmail').value;
-            let pass = document.getElementById('authPassword').value;
+            let email = document.getElementById('authEmail').value.trim();
+            let pass = document.getElementById('authPassword').value.trim();
+            clearError();
 
-            if(!email || !pass) { alert("Please fill in both fields."); return; }
+            if(!email || !pass) { 
+                showError("Please fill in both email and password fields."); 
+                return; 
+            }
+
+            setLoading(true);
 
             if(isSignUpMode) {
                 createUserWithEmailAndPassword(auth, email, pass)
-                    .then((userCredential) => {
-                        sendEmailVerification(userCredential.user)
-                            .then(() => {
-                                alert("Account created successfully! Verification email sent. Please check your inbox.");
-                                signOut(auth);
-                            });
+                    .then(() => {
+                        setLoading(false);
+                        alert("Account successfully created and signed in!");
                     })
-                    .catch((err) => { alert(err.message); });
+                    .catch((err) => {
+                        setLoading(false);
+                        if(err.code === 'auth/email-already-in-use') {
+                            showError("This email is already registered. Please sign in.");
+                        } else if(err.code === 'auth/weak-password') {
+                            showError("Security requirement: Password must be at least 6 characters.");
+                        } else {
+                            showError("Registration failed. Please check your inputs.");
+                        }
+                    });
             } else {
                 signInWithEmailAndPassword(auth, email, pass)
-                    .then(() => {})
-                    .catch((err) => { alert(err.message); });
+                    .then(() => {
+                        setLoading(false);
+                    })
+                    .catch((err) => {
+                        setLoading(false);
+                        if(err.code === 'auth/invalid-login-credentials' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+                            showError("Invalid credentials. Please verify your email and password.");
+                        } else if(err.code === 'auth/too-many-requests') {
+                            showError("Account temporarily locked due to multiple failed attempts. Try later.");
+                        } else {
+                            showError("Authentication failed. Please try again.");
+                        }
+                    });
             }
         }
 
         window.handleForgotPassword = function() {
-            let email = document.getElementById('authEmail').value;
+            let email = document.getElementById('authEmail').value.trim();
+            clearError();
+
             if(!email) { 
-                alert("Please enter your email address in the email field above first, then click 'Forgot Password?'."); 
+                showError("Please enter your email in the field above first, then click 'Forgot Password?'."); 
                 return; 
             }
+            
+            setLoading(true);
             sendPasswordResetEmail(auth, email)
                 .then(() => {
-                    alert("Password reset email sent! Please check your inbox.");
+                    setLoading(false);
+                    alert("Password reset instructions sent to your email inbox.");
                 })
                 .catch((error) => {
-                    alert(error.message);
+                    setLoading(false);
+                    showError("Could not send reset link. Verify if the email is registered.");
                 });
+        }
+
+        window.togglePasswordVisibility = function() {
+            let passInput = document.getElementById('authPassword');
+            let eyeIcon = document.getElementById('eyeIcon');
+            if (passInput.type === "password") {
+                passInput.type = "text";
+                eyeIcon.innerText = "🙈";
+            } else {
+                passInput.type = "password";
+                eyeIcon.innerText = "👁️";
+            }
         }
 
         window.logoutUser = function() {
@@ -128,23 +197,45 @@
             z-index: 9999;
         }
         .auth-card {
-            background: #ffffff; width: 380px; padding: 36px 30px; border-radius: 24px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); text-align: center;
+            background: #ffffff; width: 400px; padding: 38px 32px; border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); text-align: center; box-sizing: border-box;
         }
-        .auth-card h2 { margin-top: 0; color: var(--slate-900); font-weight: 800; font-size: 20px; }
+        .auth-card h2 { margin-top: 0; color: var(--slate-900); font-weight: 800; font-size: 20px; letter-spacing: -0.5px; }
         .auth-card p { font-size: 13px; color: var(--slate-600); margin-bottom: 20px; }
+        
+        .auth-input-group { position: relative; width: 100%; margin-bottom: 12px; }
         .auth-input {
-            width: 100%; padding: 12px 14px; margin-bottom: 12px; border: 1.5px solid #cbd5e1;
-            border-radius: 12px; font-size: 14px; box-sizing: border-box; outline: none;
+            width: 100%; padding: 12px 14px; border: 1.5px solid #cbd5e1;
+            border-radius: 12px; font-size: 14px; box-sizing: border-box; outline: none; transition: all 0.2s;
         }
         .auth-input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12); }
+        
+        .eye-btn {
+            position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; cursor: pointer; font-size: 16px; color: #64748b;
+        }
+
         .auth-btn {
-            width: 100%; padding: 12px; background: var(--primary); color: white; border: none;
+            width: 100%; padding: 13px; background: var(--primary); color: white; border: none;
             border-radius: 12px; font-weight: 700; font-size: 15px; cursor: pointer; transition: 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 8px; box-sizing: border-box;
         }
         .auth-btn:hover { background: var(--primary-dark); }
-        .auth-toggle { margin-top: 15px; font-size: 13px; color: var(--slate-600); cursor: pointer; }
-        .auth-toggle span { color: var(--primary); font-weight: 600; text-decoration: underline; }
+        
+        .spinner {
+            width: 18px; height: 18px; border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%; border-top-color: #ffffff; animation: spin 0.8s linear infinite; display: none;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .auth-error-banner {
+            background-color: #fef2f2; border: 1px solid #fecaca; color: #dc2626;
+            padding: 10px 12px; border-radius: 10px; font-size: 12px; font-weight: 600;
+            margin-bottom: 14px; display: none; text-align: left; line-height: 1.4;
+        }
+
+        .auth-toggle { margin-top: 18px; font-size: 13px; color: var(--slate-600); cursor: pointer; }
+        .auth-toggle span { color: var(--primary); font-weight: 600; }
 
         .master-toggle {
             position: fixed; right: 20px; top: 20px; z-index: 2000;
@@ -219,22 +310,34 @@
         <h2 id="authTitle">Kcrish Tally-XML Automation</h2>
         <p id="authSubtitle">Professional Excel to Tally Integration Suite</p>
         
-        <input type="email" id="authEmail" class="auth-input" placeholder="Email Address">
-        <input type="password" id="authPassword" class="auth-input" placeholder="Password">
+        <!-- Professional Error Banner -->
+        <div id="authErrorMsg" class="auth-error-banner"></div>
+
+        <div class="auth-input-group">
+            <input type="email" id="authEmail" class="auth-input" placeholder="Email Address">
+        </div>
         
-        <button id="authActionBtn" class="auth-btn" onclick="handleAuthAction()">Login</button>
+        <div class="auth-input-group">
+            <input type="password" id="authPassword" class="auth-input" placeholder="Password" style="padding-right: 40px;">
+            <button type="button" class="eye-btn" onclick="togglePasswordVisibility()" id="eyeIcon">👁️</button>
+        </div>
+        
+        <button id="authActionBtn" class="auth-btn" onclick="handleAuthAction()">
+            <span class="spinner" id="btnSpinner"></span>
+            <span id="authActionBtnText">Sign In to Workspace</span>
+        </button>
         
         <!-- Forgot Password Link -->
-        <div id="forgotPassWrapper" style="margin-top: 8px; text-align: right;">
-            <span style="font-size: 11.5px; color: var(--primary); cursor: pointer; font-weight: 600;" onclick="handleForgotPassword()">Forgot Password?</span>
+        <div id="forgotPassWrapper" style="margin-top: 10px; text-align: right;">
+            <span style="font-size: 12px; color: var(--primary); cursor: pointer; font-weight: 600;" onclick="handleForgotPassword()">Forgot Password?</span>
         </div>
 
         <div class="auth-toggle" onclick="toggleAuthMode()">
-            <span id="authToggleText">Create a new account</span>
+            <span id="authToggleText">Don't have an account? <b>Create one</b></span>
         </div>
 
-        <div style="margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 12px;">
-            <p style="font-size: 10px; color: #94a3b8; letter-spacing: 0.5px; margin: 0;">SECURE PROCESSING • INSTANT VERIFICATION</p>
+        <div style="margin-top: 22px; border-top: 1px solid #e2e8f0; padding-top: 14px;">
+            <p style="font-size: 10px; color: #94a3b8; letter-spacing: 0.5px; margin: 0;">ENTERPRISE GRADE SECURITY • INSTANT ACCESS</p>
         </div>
     </div>
 </div>
