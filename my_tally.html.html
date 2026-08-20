@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kcrish - Tally Automation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'Segoe UI', sans-serif; 
+            background: linear-gradient(rgba(15, 23, 42, 0.5), rgba(15, 23, 42, 0.5)), url('XbpKE.jpg.jpg') center/cover no-repeat fixed; 
+            height: 100vh;
+        }
+
+        .sidebar { 
+            position: fixed; 
+            right: 20px; 
+            top: 20px; 
+            width: 320px; 
+            background: rgba(255, 255, 255, 0.95); 
+            backdrop-filter: blur(15px); 
+            padding: 20px; 
+            border-radius: 16px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
+            border: 1px solid rgba(255,255,255,0.3); 
+        }
+
+        h2 { 
+            font-size: 16px; 
+            color: #1e293b; 
+            margin: 0 0 15px 0; 
+            border-bottom: 2px solid #2563eb; 
+            padding-bottom: 8px; 
+            text-align: right; 
+        }
+        
+        .menu-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+        .menu-item { padding: 10px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; transition: 0.3s; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+        .menu-item:hover { border-color: #2563eb; background: #eff6ff; }
+        .menu-item.active { border-color: #2563eb; background: #dbeafe; font-weight: 600; }
+        
+        /* Bank Config Style - Editable */
+        .bank-config { margin: 15px 0; text-align: right; display: none; }
+        .bank-config label { font-size: 11px; color: #64748b; font-weight: 600; display: block; margin-bottom: 5px; }
+        .bank-config input { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 13px; text-align: right; background-color: #ffffff; cursor: text; }
+
+        .actions { margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        button { padding: 8px; font-size: 11px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        .btn-dl { background: #d97706; color: white; }
+        .btn-up { background: #0891b2; color: white; }
+        .btn-gen { background: #16a34a; color: white; grid-column: span 2; padding: 10px; }
+        
+        .info-box { margin-top: 15px; padding: 10px; background: #fffbeb; border: 1px solid #fcd34d; border-radius: 6px; font-size: 11px; color: #92400e; text-align: center; display: block; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <h2>Kcrish Automation</h2>
+    
+    <div class="menu-list">
+        <div class="menu-item active" onclick="switchTab('Bank', this)">Bank Statement <span>🏦</span></div>
+        <div class="menu-item" onclick="switchTab('Journal', this)">Journal Voucher <span>🔄</span></div>
+        <div class="menu-item" onclick="switchTab('Multi', this)">Multi-Voucher <span>📑</span></div>
+    </div>
+
+    <!-- Bank Config - Only visible on Bank Tab, Editable -->
+    <div id="bankConfigBox" class="bank-config" style="display:block;">
+        <label>Bank Ledger Name:</label>
+        <input type="text" id="defaultBankName" value="My Bank Acc">
+    </div>
+
+    <div id="infoBox" class="info-box">💡 Alias/Ledger mein "My Bank Acc" likho.</div>
+
+    <div class="actions">
+        <button class="btn-dl" onclick="downloadTemplate()">📥 Get Template</button>
+        <button class="btn-up" onclick="document.getElementById('fileInput').click()">📂 Upload Data</button>
+        <input type="file" id="fileInput" hidden onchange="processExcel(event)">
+        <button id="btnGen" class="btn-gen" style="display:none" onclick="generateXML()">⚡ Generate XML</button>
+    </div>
+</div>
+
+<script>
+    let currentTab = 'Bank';
+
+    function switchTab(tab, el) {
+        currentTab = tab;
+        document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
+        el.classList.add('active');
+        document.getElementById('btnGen').style.display = 'none';
+        
+        // Show/Hide specific boxes based on tab
+        document.getElementById('bankConfigBox').style.display = (tab === 'Bank') ? 'block' : 'none';
+        document.getElementById('infoBox').style.display = (tab === 'Bank') ? 'block' : 'none';
+    }
+    
+    function downloadTemplate() {
+        let wb = XLSX.utils.book_new();
+        let ws_data;
+
+        if (currentTab === 'Bank') {
+            ws_data = [["Date", "Vch Type", "Vch No", "Particulars", "Debit", "Credit", "Narration"]];
+        } else if (currentTab === 'Journal') {
+            ws_data = [["Date", "Vch No", "Dr Ledger", "Cr Ledger", "Amount", "Narration"]];
+        } else {
+            ws_data = [["Vch Type", "Date", "Vch No", "Ledger 1 (Dr/Party)", "Ledger 2 (Cr/Offset)", "Amount", "Narration"]];
+        }
+        
+        let ws = XLSX.utils.aoa_to_sheet(ws_data);
+        XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+        XLSX.writeFile(wb, `${currentTab}_Template.xlsx`);
+    }
+    
+    function processExcel(e) {
+        document.getElementById('btnGen').style.display = 'block';
+    }
+
+    function generateXML() {
+        // XML generation handler
+    }
+</script>
+</body>
+</html>
