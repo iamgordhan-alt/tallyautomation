@@ -45,24 +45,16 @@
             if(isSignUpMode) {
                 createUserWithEmailAndPassword(auth, email, pass)
                     .then((userCredential) => {
-                        // Send Email Verification Link
                         sendEmailVerification(userCredential.user)
                             .then(() => {
-                                alert("Account created successfully! A verification email has been sent to your inbox. Please check and verify.");
-                                signOut(auth); // Sign out until verified if needed
+                                alert("Account created successfully! Verification email sent. Please check your inbox.");
+                                signOut(auth);
                             });
                     })
                     .catch((err) => { alert(err.message); });
             } else {
                 signInWithEmailAndPassword(auth, email, pass)
-                    .then((userCredential) => {
-                        // Optional: Check if email is verified
-                        if (!userCredential.user.emailVerified) {
-                            // You can uncomment below if you want to block unverified logins
-                            // alert("Please verify your email address before logging in. Check your inbox.");
-                            // signOut(auth);
-                        }
-                    })
+                    .then(() => {})
                     .catch((err) => { alert(err.message); });
             }
         }
@@ -242,7 +234,7 @@
         </div>
 
         <div style="margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 12px;">
-            <p style="font-size: 10px; color: #94a3b8; letter-spacing: 0.5px; margin: 0;">SECURE PROCESSING • INSTANT EMAIL VERIFICATION</p>
+            <p style="font-size: 10px; color: #94a3b8; letter-spacing: 0.5px; margin: 0;">SECURE PROCESSING • INSTANT VERIFICATION</p>
         </div>
     </div>
 </div>
