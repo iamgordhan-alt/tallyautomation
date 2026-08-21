@@ -1,120 +1,951 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kcrish - Enterprise Tally Automation Suite</title>
-    <!-- SheetJS for Excel handling -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    
-    <!-- Firebase App (v9 Modular CDN) -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kcrish - Excel to Tally Automation</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- SheetJS for Excel handling -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  
+  <!-- Firebase App (v9 Modular CDN) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyCHcQdr6IWGhTK_Z2OJ3_fm7051G8coTkA",
-            authDomain: "tally-automation-36b9f.firebaseapp.com",
-            projectId: "tally-automation-36b9f",
-            storageBucket: "tally-automation-36b9f.firebasestorage.app",
-            messagingSenderId: "289070145283",
-            appId: "1:289070145283:web:aa0c65a8b37bca54205336",
-            measurementId: "G-JQKT4V3ZF6"
-        };
+    const firebaseConfig = {
+        apiKey: "AIzaSyCHcQdr6IWGhTK_Z2OJ3_fm7051G8coTkA",
+        authDomain: "tally-automation-36b9f.firebaseapp.com",
+        projectId: "tally-automation-36b9f",
+        storageBucket: "tally-automation-36b9f.firebasestorage.app",
+        messagingSenderId: "289070145283",
+        appId: "1:289070145283:web:aa0c65a8b37bca54205336",
+        measurementId: "G-JQKT4V3ZF6"
+    };
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
 
-        let isSignUpMode = false;
+    let isSignUpMode = false;
 
-        // AUTH FUNCTIONS
-        window.toggleAuthMode = function() {
-            isSignUpMode = !isSignUpMode;
-            document.getElementById('authTitle').innerText = isSignUpMode ? "Create Enterprise Account" : "Kcrish Tally-XML Automation";
-            document.getElementById('authActionBtnText').innerText = isSignUpMode ? "Create Account" : "Sign In to Workspace";
-            document.getElementById('authToggleText').innerHTML = isSignUpMode ? "Already have an account? <b>Sign In</b>" : "Don't have an account? <b>Create one</b>";
-            document.getElementById('forgotPassWrapper').style.display = isSignUpMode ? "none" : "block";
+    window.toggleAuthMode = function(e) {
+        if(e) e.preventDefault();
+        isSignUpMode = !isSignUpMode;
+        document.getElementById('authCardTitle').innerText = isSignUpMode ? "Create an account" : "Welcome Back!";
+        document.getElementById('authCardSubtitle').innerText = isSignUpMode ? "Register securely for instant XML automation." : "Sign in to your account";
+        document.getElementById('authActionBtnText').innerText = isSignUpMode ? "Create Account" : "Log In";
+        document.getElementById('authToggleText').innerHTML = isSignUpMode ? "Already have an account? <b>Sign in</b>" : "Don't have an account? <b>Create one</b>";
+        let forgot = document.getElementById('forgotPassWrapper');
+        if(forgot) forgot.style.display = isSignUpMode ? "none" : "block";
+        clearError();
+    }
+
+    function setLoading(isLoading) {
+        let btn = document.getElementById('authActionBtn');
+        let spinner = document.getElementById('btnSpinner');
+        if (isLoading) {
+            btn.disabled = true;
+            btn.style.opacity = '0.7';
+            if(spinner) spinner.style.display = 'inline-block';
+        } else {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            if(spinner) spinner.style.display = 'none';
+        }
+    }
+
+    function showError(msg) {
+        let box = document.getElementById('authErrorMsg');
+        if(box) {
+            box.innerText = msg;
+            box.style.display = 'block';
+        } else {
+            alert(msg);
+        }
+    }
+
+    function clearError() {
+        let box = document.getElementById('authErrorMsg');
+        if(box) {
+            box.innerText = '';
+            box.style.display = 'none';
+        }
+    }
+
+    window.handleAuthAction = function(e) {
+        if(e) e.preventDefault();
+        let email = document.getElementById('authEmail').value.trim();
+        let pass = document.getElementById('authPassword').value.trim();
+        clearError();
+
+        if(!email || !pass) { 
+            showError("Please fill in both email and password fields."); 
+            return; 
         }
 
-        window.handleAuthAction = function() {
-            let email = document.getElementById('authEmail').value.trim();
-            let pass = document.getElementById('authPassword').value.trim();
-            if(!email || !pass) { alert("Please fill in both fields."); return; }
-            if(isSignUpMode) {
-                createUserWithEmailAndPassword(auth, email, pass).then(() => alert("Account Created!")).catch(err => alert(err.message));
-            } else {
-                signInWithEmailAndPassword(auth, email, pass).catch(err => alert(err.message));
-            }
-        }
+        setLoading(true);
 
-        window.handleForgotPassword = function() {
-            let email = document.getElementById('authEmail').value.trim();
-            if(!email) { alert("Please enter your email address."); return; }
-            sendPasswordResetEmail(auth, email).then(() => alert("Reset email sent!")).catch(err => alert(err.message));
+        if(isSignUpMode) {
+            createUserWithEmailAndPassword(auth, email, pass)
+                .then(() => {
+                    setLoading(false);
+                    alert("Account successfully created and signed in!");
+                })
+                .catch((err) => {
+                    setLoading(false);
+                    if(err.code === 'auth/email-already-in-use') {
+                        showError("This email is already registered. Please sign in.");
+                    } else if(err.code === 'auth/weak-password') {
+                        showError("Security requirement: Password must be at least 6 characters.");
+                    } else {
+                        showError("Registration failed. Please check your inputs.");
+                    }
+                });
+        } else {
+            signInWithEmailAndPassword(auth, email, pass)
+                .then(() => {
+                    setLoading(false);
+                })
+                .catch((err) => {
+                    setLoading(false);
+                    if(err.code === 'auth/invalid-login-credentials' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+                        showError("Invalid credentials. Please verify your email and password.");
+                    } else if(err.code === 'auth/too-many-requests') {
+                        showError("Account temporarily locked due to multiple failed attempts. Try later.");
+                    } else {
+                        showError("Authentication failed. Please try again.");
+                    }
+                });
         }
+    }
 
-        window.togglePasswordVisibility = function() {
-            let passInput = document.getElementById('authPassword');
-            passInput.type = (passInput.type === "password") ? "text" : "password";
+    window.handleForgotPassword = function(e) {
+        if(e) e.preventDefault();
+        let email = document.getElementById('authEmail').value.trim();
+        clearError();
+
+        if(!email) { 
+            showError("Please enter your email in the field above first, then click 'Forgot password?'."); 
+            return; 
         }
+        
+        setLoading(true);
+        sendPasswordResetEmail(auth, email)
+            .then(() => {
+                setLoading(false);
+                alert("Password reset instructions sent to your email inbox.");
+            })
+            .catch((error) => {
+                setLoading(false);
+                showError("Could not send reset link. Verify if the email is registered.");
+            });
+    }
 
-        window.logoutUser = function() {
-            signOut(auth);
-        }
-
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                document.getElementById('authOverlay').style.display = 'none';
-                document.getElementById('introBox').style.display = 'block';
-                document.getElementById('sidebarPanel').style.display = 'block';
-                document.getElementById('menuMasterBtn').style.display = 'block';
-                document.getElementById('userEmailDisplay').innerText = `📧 ${user.email}`;
-            } else {
-                document.getElementById('authOverlay').style.display = 'flex';
-                document.getElementById('introBox').style.display = 'none';
-                document.getElementById('sidebarPanel').style.display = 'none';
-                document.getElementById('menuMasterBtn').style.display = 'none';
-                document.getElementById('centerModulePanel').style.display = 'none';
-            }
+    window.logoutUser = function() {
+        signOut(auth).then(() => {
+            document.getElementById('authOverlay').style.display = 'flex';
+            document.getElementById('sidebarPanel').style.display = 'none';
+            document.getElementById('menuMasterBtn').style.display = 'none';
+            document.getElementById('centerModulePanel').style.display = 'none';
         });
-    </script>
+    }
 
-    <style>
-        /* ... (Keep existing CSS for layout and styling) ... */
-        :root { --primary: #2563eb; --glass-bg: rgba(255, 255, 255, 0.96); }
-        /* Add CSS from previous version to keep design consistent */
-    </style>
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            document.getElementById('authOverlay').style.display = 'none';
+            document.getElementById('sidebarPanel').style.display = 'block';
+            document.getElementById('menuMasterBtn').style.display = 'block';
+            let emailDisp = document.getElementById('userEmailDisplay');
+            if(emailDisp) emailDisp.innerText = `📧 ${user.email}`;
+        } else {
+            document.getElementById('authOverlay').style.display = 'flex';
+            document.getElementById('sidebarPanel').style.display = 'none';
+            document.getElementById('menuMasterBtn').style.display = 'none';
+            document.getElementById('centerModulePanel').style.display = 'none';
+        }
+    });
+  </script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0f172a;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    #authOverlay {
+      position: fixed;
+      inset: 0;
+      background: #0f172a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 20px;
+    }
+
+    /* 680 x 470 EXACT DIMENSIONS */
+    .login-container {
+      display: flex;
+      width: 680px;
+      height: 470px;
+      background: #ffffff;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+    }
+
+    /* ========== LEFT SIDE WITH PREVIOUS BACKGROUND LOGO IMAGE ========== */
+    .left-panel {
+      width: 48%;
+      background: linear-gradient(180deg, rgba(20, 83, 45, 0.92) 0%, rgba(22, 101, 52, 0.92) 100%), 
+                  url('ChatGPT Image Aug 21, 2026, 04_28_06 PM.png');
+      background-size: cover;
+      background-position: center;
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      color: white;
+    }
+
+    .logo-section {
+      text-align: center;
+      margin-bottom: 2px;
+    }
+
+    .brand-name {
+      font-size: 22px;
+      font-weight: 800;
+      color: #facc15;
+      letter-spacing: -0.5px;
+    }
+
+    .tagline {
+      font-size: 8.5px;
+      font-weight: 700;
+      color: #cbd5e1;
+      letter-spacing: 1px;
+      margin-top: 1px;
+    }
+
+    .features {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin: 2px 0 3px;
+      font-size: 9px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+
+    .workflow-box {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      padding: 5px 8px;
+      backdrop-filter: blur(6px);
+      margin-bottom: 2px;
+    }
+
+    .workflow-title {
+      display: flex; align-items: center; gap: 4px;
+      font-size: 10px; font-weight: 700; color: #facc15; margin-bottom: 2px;
+    }
+
+    .step { display: flex; align-items: flex-start; gap: 5px; margin-bottom: 2px; }
+    .step:last-child { margin-bottom: 0; }
+
+    .step-num {
+      width: 13px; height: 13px; background: #16a34a; color: white;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 7.5px; font-weight: 700; flex-shrink: 0;
+    }
+
+    .step-content h4 { font-size: 9px; font-weight: 600; color: #ffffff; }
+    .step-content p { font-size: 7.5px; color: #cbd5e1; margin-top: 0px; }
+
+    .contact-box {
+      display: flex;
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      overflow: hidden;
+      margin-top: 50px;
+      margin-bottom: 4px;
+      backdrop-filter: blur(6px);
+    }
+
+    .contact-item {
+      flex: 1;
+      padding: 4px 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 9.5px;
+      font-weight: 500;
+      color: white;
+    }
+
+    .contact-item:first-child { border-right: 1px solid rgba(255, 255, 255, 0.2); }
+
+    .contact-icon {
+      width: 15px; height: 15px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; font-size: 8.5px;
+    }
+
+    .whatsapp { background: #25d366; color: white; }
+    .email { background: #0f172a; color: white; }
+
+    .footer-left {
+      margin-top: 2px; display: flex; justify-content: space-between; font-size: 8.5px; color: rgba(255,255,255,0.8); border-top: 1px solid rgba(255,255,255,0.15); padding-top: 3px;
+    }
+
+    /* ========== RIGHT SIDE ========== */
+    .right-panel {
+      width: 52%; padding: 28px 32px; display: flex; flex-direction: column; justify-content: center; position: relative;
+    }
+
+    .secure-badge {
+      position: absolute; top: 16px; right: 20px; display: flex; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 600; color: #16a34a;
+    }
+    .secure-badge span { color: #64748b; font-weight: 500; font-size: 9.5px; }
+
+    .welcome { font-size: 22px; font-weight: 700; color: #0f172a; margin-bottom: 3px; }
+    .subtitle { font-size: 12px; font-weight: 600; color: #16a34a; margin-bottom: 2px; }
+    .desc { font-size: 11px; color: #64748b; margin-bottom: 14px; }
+
+    .form-group { margin-bottom: 10px; }
+    .form-group label { display: block; font-size: 11px; font-weight: 600; color: #334155; margin-bottom: 4px; }
+
+    .input-wrapper { position: relative; }
+    .input-wrapper input {
+      width: 100%; padding: 9px 12px 9px 36px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 12px; outline: none; transition: all 0.2s; background: #f8fafc;
+    }
+    .input-wrapper input:focus { border-color: #16a34a; background: white; box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15); }
+
+    .input-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #94a3b8; }
+    .password-toggle { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 13px; color: #94a3b8; }
+
+    .forgot { text-align: right; margin-top: 3px; }
+    .forgot a { font-size: 11px; color: #16a34a; text-decoration: none; font-weight: 500; }
+    .forgot a:hover { text-decoration: underline; }
+
+    .login-btn {
+      width: 100%; padding: 10px; background: linear-gradient(90deg, #16a34a, #15803d); color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 4px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .login-btn:hover { transform: translateY(-1px); box-shadow: 0 5px 15px rgba(22, 163, 74, 0.35); }
+
+    .spinner {
+        width: 14px; height: 14px; border: 2.5px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; animation: spin 0.8s linear infinite; display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .auth-error-banner {
+        background-color: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 6px 8px; border-radius: 6px; font-size: 10.5px; font-weight: 600; margin-bottom: 8px; display: none;
+    }
+
+    .divider { display: flex; align-items: center; margin: 10px 0; color: #94a3b8; font-size: 11px; }
+    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #e2e8f0; }
+    .divider span { padding: 0 8px; }
+
+    .google-btn {
+      width: 100%; padding: 9px; background: white; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 12px; font-weight: 500; color: #334155; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;
+    }
+    .google-btn:hover { background: #f8fafc; border-color: #cbd5e1; }
+    .google-icon { width: 15px; height: 15px; }
+
+    .signup-text { text-align: center; margin-top: 10px; font-size: 11.5px; color: #64748b; }
+    .signup-text a { color: #16a34a; font-weight: 600; text-decoration: none; }
+    .signup-text a:hover { text-decoration: underline; }
+
+    /* Dashboard UI Elements */
+    .master-toggle {
+        position: fixed; right: 20px; top: 20px; z-index: 2000;
+        background: #ffffff; padding: 10px 16px; border-radius: 10px; cursor: pointer;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2); font-size: 16px; font-weight: 700; color: #0f172a; display: none;
+    }
+
+    .sidebar { 
+        position: fixed; right: 0; top: 0; width: 280px; height: 100vh;
+        overflow-y: auto; background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(20px); 
+        padding: 24px 16px; box-shadow: 0 20px 25px rgba(0,0,0,0.3); z-index: 999; display: none; box-sizing: border-box;
+    }
+    .sidebar-section-title { font-size: 11px; font-weight: 700; color: #1e3a8a; padding: 8px 4px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; text-transform: uppercase; border-bottom: 1.5px solid #e2e8f0; margin-top: 10px; }
+    .menu-content { overflow: hidden; transition: max-height 0.3s ease; max-height: 500px; }
+    .menu-content.collapsed { max-height: 0; }
+    .menu-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+    .profile-card { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; display: flex; flex-direction: column; gap: 3px; }
+    .profile-card span { font-size: 11px; color: #475569; display: flex; align-items: center; gap: 6px; font-weight: 500; word-break: break-all; }
+    .menu-item { padding: 8px 10px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; font-weight: 500; color: #475569; margin-top: 4px; }
+    .menu-item:hover { border-color: #16a34a; background: #f0fdf4; color: #16a34a; }
+    .menu-item.active { border-color: #16a34a; background: #eff6ff; color: #166534; font-weight: 600; }
+    .logout-btn { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 8px; border-radius: 8px; font-size: 11.5px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 10px; }
+
+    .center-main-panel {
+        position: fixed; left: calc((100vw - 280px) / 2); top: 24px; transform: translateX(-50%);
+        width: min(720px, calc(100vw - 320px)); max-height: calc(100vh - 48px);
+        overflow-y: auto; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(25px);
+        padding: 32px; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        border: 1px solid rgba(226, 232, 240, 0.8); text-align: center; display: none; z-index: 900;
+    }
+    .center-main-panel h2 { font-size: 22px; color: #0f172a; margin-top: 0; margin-bottom: 16px; font-weight: 800; border-bottom: 2px solid #f1f5f9; padding-bottom: 14px; }
+    .info-card { background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); padding: 18px; border-radius: 16px; border: 1px solid #cbd5e1; margin-bottom: 20px; text-align: left; }
+    .info-card label { font-size: 13px; color: #1e293b; font-weight: 700; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .info-card input { width: 100%; padding: 10px 14px; border: 1.5px solid #cbd5e1; border-radius: 10px; font-size: 14px; font-weight: 600; color: #0f172a; outline: none; background: #ffffff; box-sizing: border-box; }
+    
+    .demo-table-wrapper { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; margin-bottom: 20px; text-align: left; }
+    .demo-table-container { overflow-x: auto; }
+    .demo-table { width: 100%; border-collapse: collapse; font-size: 11px; min-width: 480px; }
+    .demo-table th { background: #f1f5f9; color: #334155; padding: 8px 10px; border: 1px solid #e2e8f0; font-weight: 700; text-align: left; white-space: nowrap; }
+    .demo-table td { padding: 8px 10px; border: 1px solid #e2e8f0; color: #475569; white-space: nowrap; }
+    .demo-table tr:nth-child(even) { background: #f8fafc; }
+
+    .steps-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .step-card { background: #ffffff; padding: 18px; border-radius: 16px; border: 1px solid #e2e8f0; text-align: left; }
+    .btn-bank-dl { background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: white; padding: 10px 14px; border-radius: 10px; font-weight: 600; font-size: 12px; border: none; cursor: pointer; width: 100%; }
+    .file-upload-wrapper { background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); padding: 10px 14px; border-radius: 10px; color: white; font-size: 12px; font-weight: 600; text-align: center; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .file-upload-wrapper input { display: none; }
+    .btn-bank-gen { background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); color: white; padding: 14px; border-radius: 12px; font-weight: 700; font-size: 14px; border: none; cursor: pointer; width: 100%; margin-top: 20px; display: none; }
+    .btn-bottom-dashboard { background: #ffffff; color: #1e293b; border: 1.5px solid #cbd5e1; padding: 11px 20px; border-radius: 12px; font-weight: 600; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; margin-top: 22px; }
+  </style>
 </head>
 <body>
-    <!-- (Include the rest of the HTML structure as provided in the previous final version) -->
-    <!-- Make sure the moduleConfig object contains the full headers and rows list as you defined originally -->
 
-<script>
-    // Module configuration with FULL original headers and demo rows
+  <div id="authOverlay">
+    <div class="login-container">
+
+      <!-- LEFT PANEL WITH BACKGROUND LOGO IMAGE -->
+      <div class="left-panel">
+        <div class="logo-section">
+          <div class="brand-name">Kcrish</div>
+          <div class="tagline">— EXCEL TO TALLY AUTOMATION —</div>
+        </div>
+
+        <div class="features">
+          <span>⚙️ AUTOMATE</span>
+          <span>🎯 ACCURATE</span>
+          <span>📈 EFFICIENT</span>
+        </div>
+
+        <!-- Workflow Box First -->
+        <div class="workflow-box">
+          <div class="workflow-title">
+            🚀 Quick 3-Step Workflow
+          </div>
+
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <h4>Download Template</h4>
+              <p>Get pre-configured Excel format.</p>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <h4>Upload Data</h4>
+              <p>Fill and upload your spreadsheet.</p>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-content">
+              <h4>Generate XML</h4>
+              <p>Import straight into Tally securely.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contact Box Pushed Down -->
+        <div class="contact-box">
+          <div class="contact-item">
+            <div class="contact-icon whatsapp">📱</div>
+            <div>
+              <div style="font-weight:600">7665574125</div>
+              <div style="font-size:7px;color:#cbd5e1">(WhatsApp)</div>
+            </div>
+          </div>
+          <div class="contact-item">
+            <div class="contact-icon email">✉️</div>
+            <div style="font-size:8px">xtallykcrish@gmail.com</div>
+          </div>
+        </div>
+
+        <div class="footer-left">
+          <span>🔒 Secure & Reliable</span>
+          <span>Made with ❤️ by Kcrish Saran</span>
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL -->
+      <div class="right-panel">
+        <div class="secure-badge">
+          🔒 Secure <span>Your data is safe</span>
+        </div>
+
+        <h1 class="welcome" id="authCardTitle">Welcome Back!</h1>
+        <p class="subtitle" id="authCardSubtitle">Sign in to your account</p>
+        <p class="desc">Enter your credentials to access your workspace.</p>
+
+        <div id="authErrorMsg" class="auth-error-banner"></div>
+
+        <form onsubmit="handleAuthAction(event)">
+          <div class="form-group">
+            <label>Email Address</label>
+            <div class="input-wrapper">
+              <span class="input-icon">✉️</span>
+              <input type="email" id="authEmail" placeholder="name@company.com" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Password</label>
+            <div class="input-wrapper">
+              <span class="input-icon">🔒</span>
+              <input type="password" id="authPassword" placeholder="••••••••" required>
+              <span class="password-toggle" onclick="togglePassword()">👁️</span>
+            </div>
+            <div class="forgot" id="forgotPassWrapper">
+              <a href="#" onclick="handleForgotPassword(event)">Forgot password?</a>
+            </div>
+          </div>
+
+          <button type="submit" class="login-btn" id="authActionBtn">
+            <span class="spinner" id="btnSpinner"></span>
+            <span id="authActionBtnText">Log In</span> →
+          </button>
+        </form>
+
+        <div class="divider">
+          <span>or</span>
+        </div>
+
+        <button class="google-btn" type="button">
+          <svg class="google-icon" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          Continue with Google
+        </button>
+
+        <p class="signup-text" onclick="toggleAuthMode(event)" style="cursor: pointer;">
+          <span id="authToggleText">Don't have an account? <b>Create one</b></span>
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+  <button class="master-toggle" id="menuMasterBtn" onclick="toggleAllPanels()">☰ Menu</button>
+
+  <div class="center-main-panel" id="centerModulePanel">
+      <h2 id="centerPanelTitle">Module Workspace</h2>
+      
+      <div class="info-card" id="centerBankConfig" style="display: none;">
+          <label>
+              <span>🏦 Bank Ledger Name in Tally:</span>
+              <span class="hint-tag" style="font-size: 10px; color: #dc2626; background: #fef2f2; padding: 2px 6px; border-radius: 4px;">Exact Match Required</span>
+          </label>
+          <input type="text" id="defaultBankName" value="Bank Account" placeholder="Type exact bank ledger name as in Tally" onfocus="this.select()">
+      </div>
+
+      <div class="demo-table-wrapper" id="demoTableWrapper">
+          <div class="demo-table-title" style="font-size: 12px; font-weight: 700; color: #1e3a8a; margin-bottom: 8px;">
+              <span>📑 Format Reference (Sample Demo Entries):</span>
+              <span id="demoTableSubtitle" style="font-size: 11px; color: #64748b; font-weight: 500;"></span>
+          </div>
+          <div class="demo-table-container" id="demoTableContainer"></div>
+      </div>
+
+      <div class="steps-grid">
+          <div class="step-card">
+              <h3 style="font-size: 13px; margin-top:0;">📥 Step 1: Excel Format</h3>
+              <p style="font-size: 11.5px; color: #64748b;">Download template for this module.</p>
+              <button class="btn-bank-dl" id="btnDownloadTemplate" onclick="downloadTemplate()">Download Template</button>
+          </div>
+          
+          <div class="step-card">
+              <h3 style="font-size: 13px; margin-top:0;">📂 Step 2: Upload Data</h3>
+              <p style="font-size: 11.5px; color: #64748b;">Upload filled Excel sheet.</p>
+              <label class="file-upload-wrapper">
+                  📁 <span id="fileNameDisplay">Choose File</span>
+                  <input type="file" onchange="processExcel(event)">
+              </label>
+          </div>
+      </div>
+
+      <button id="btnCenterGen" class="btn-bank-gen" onclick="generateXML()">⚡ Generate Tally XML</button>
+
+      <div>
+          <button class="btn-bottom-dashboard" onclick="goToDashboard()">
+              <span>🏠</span>
+              <span>Back to Dashboard Home</span>
+          </button>
+      </div>
+  </div>
+
+  <div class="sidebar" id="sidebarPanel">
+      <h2>Kcrish Automation</h2>
+      
+      <div class="profile-card">
+          <span id="userEmailDisplay">📧 xtallykcrish@gmail.com</span>
+          <span>
+              <a href="https://wa.me/917665574125" target="_blank" class="wa-badge">
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" width="12" height="12" alt="WA">
+                  <span>+91 7665574125</span>
+              </a>
+          </span>
+      </div>
+
+      <div class="menu-item active" id="menuHome" onclick="switchTab('Home', this)">Dashboard Home <span>🏠</span></div>
+
+      <div class="sidebar-section-title" onclick="toggleMenu('vchMenu', this)">VCH Entry <span>▼</span></div>
+      <div class="menu-content" id="vchMenu">
+          <div class="menu-list">
+              <div class="menu-item" onclick="switchTab('Dual', this)">Vouchers - Dual Entry <span>🔄</span></div>
+              <div class="menu-item" onclick="switchTab('Multi', this)">Vouchers - Multi Entry <span>📑</span></div>
+              <div class="menu-item" onclick="switchTab('QuickEntry', this)">Vouchers - Quick Entry <span>⚡</span></div>
+              <div class="menu-item" onclick="switchTab('Masters', this)">Masters - Ledgers <span>📁</span></div>
+              <div class="menu-item" onclick="switchTab('Bank', this)">Bank Statement <span>🏦</span></div>
+          </div>
+      </div>
+
+      <button class="logout-btn" onclick="logoutUser()">Log Out 🚪</button>
+  </div>
+
+  <script>
+    function togglePassword() {
+      const input = document.getElementById('authPassword');
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    function toggleMenu(id, el) {
+        let content = document.getElementById(id);
+        content.classList.toggle('collapsed');
+        let span = el.querySelector('span');
+        if(span) span.innerText = content.classList.contains('collapsed') ? '▲' : '▼';
+    }
+
+    function toggleAllPanels() {
+        let sidebar = document.getElementById('sidebarPanel');
+        if (sidebar.style.display === 'none' || sidebar.style.display === '') {
+            sidebar.style.display = 'block';
+        } else {
+            sidebar.style.display = 'none';
+        }
+    }
+
+    function goToDashboard() { switchTab('Home', document.getElementById('menuHome')); }
+
+    function escapeXML(str) {
+        if (str === null || str === undefined) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+    }
+
+    function parseAmount(val) {
+        if (val === null || val === undefined || val === '') return 0;
+        if (typeof val === 'number') return val;
+        let str = String(val).trim();
+        let isNegative = false;
+        if (str.startsWith('(') && str.endsWith(')')) { isNegative = true; str = str.substring(1, str.length - 1); }
+        else if (str.startsWith('-')) { isNegative = true; str = str.substring(1); }
+        str = str.replace(/,/g, '').trim();
+        let num = parseFloat(str) || 0;
+        return isNegative ? -num : num;
+    }
+
+    let currentTab = 'Home';
+    let excelData = [];
+
     const moduleConfig = {
         'Bank': {
             title: 'Kcrish - Bank Statement Converter',
+            subtitle: '(Receipt & Payment Statement Flow)',
+            btnText: '📥 Download Bank Template',
+            genBtnText: '⚡ Generate Bank_Transactions XML',
             headers: ['Date', 'Vch Type', 'Vch No', 'Particulars', 'Debit', 'Credit', 'Narration'],
-            demoRows: [['01-Apr-2026', 'Receipt', '1', 'Customer A', '', '5000.00', 'Payment received against bill']]
+            demoRows: [
+                ['01-Apr-2026', 'Receipt', '1', 'Customer A', '', '5000.00', 'Payment received against bill'],
+                ['02-Apr-2026', 'Payment', '1', 'Rent Expense', '15000.00', '', 'Monthly office rent paid']
+            ]
         },
         'QuickEntry': {
             title: 'Kcrish - Quick Entry (Columnar Sales & GST)',
-            headers: ['Date*', 'Vouch No.', 'Ref. No.', 'Ref. Date', 'Narration', 'Voucher Type', 'Ledger Name', 'Amount (Dr)/Cr', 'Sales', 'CGST', 'SGST'],
-            demoRows: [['01-Apr-2025', '1', 'REF001', '01-Apr-2025', 'Sale', 'Sales', 'Customer A', '(11,800.00)', '10000.00', '900.00', '900.00']]
+            subtitle: '(Multi-Ledger Columnar Format with Taxes & Round Off)',
+            btnText: '📥 Download Quick Entry Template',
+            genBtnText: '⚡ Generate QuickEntry XML',
+            headers: ['Date*', 'Vouch No.', 'Ref. No.', 'Ref. Date', 'Narration', 'Voucher Type', 'Ledger Name', 'Amount (Dr)/Cr', 'Sales', 'Discount Allowed', 'Freight', 'IGST', 'CGST', 'SGST', 'Round Off'],
+            demoRows: [['01-Apr-2025', '1', '', '', 'Goods sold to Customer A (18% GST)', 'Sales', 'Customer A', '(11,800.00)', '10000.00', '', '', '', '900.00', '900.00', '']]
         },
         'Dual': {
-            title: 'Kcrish - Dual Entry (Standard)',
+            title: 'Kcrish - Dual Entry (Standard 1 Dr : 1 Cr)',
+            subtitle: '(Standard Dual Entry Flow Matching Your Excel Sheet)',
+            btnText: '📥 Download Dual Entry Template',
+            genBtnText: '⚡ Generate Dual_Entry XML',
             headers: ['Date*', 'Voucher Type*', 'Vouch No.', 'Ref. No.', 'Ref. Date', 'Debit*', 'Credit*', 'Amount*', 'Narration'],
-            demoRows: [['01-Apr-2025', 'Receipt', '1', 'R-101', '01-Apr-2025', 'Cash', 'Capital', '1,00,000.00', 'Capital intro']]
+            demoRows: [['01-Apr-2025', 'Receipt', '1', '', '', 'Cash', 'Capital', '1,00,000.00', 'Capital introduced by owner.']]
+        },
+        'Multi': {
+            title: 'Kcrish - Multi-Voucher (Horizontal Columnar Entry)',
+            subtitle: '(14-Ledger Pair Horizontal Structure)',
+            btnText: '📥 Download Multi-Voucher Template',
+            genBtnText: '⚡ Generate Multi_Voucher XML',
+            headers: ['Date*', 'Type*', 'Vouch No.', 'Ref. No.', 'Ref. Date', 'Narration', 'Ledger 1', 'Amount (Dr)/Cr', 'Ledger 2', 'Amount (Dr)/Cr'],
+            demoRows: [['01-Apr-2026', 'Journal', '1', '', '', 'RAM PAY SETTLEMENT', 'RAM', '(500.00)', 'KRISH', '250.00']]
         },
         'Masters': {
             title: 'Kcrish - Masters Ledger Import',
-            headers: ['Ledger Name*', 'Group', 'Opening Balance (Dr)/Cr', 'Alias', 'Address Line 1', 'State', 'PIN Code', 'GSTIN', 'Reg. Type'],
-            demoRows: [['Customer A Pvt Ltd', 'Sundry Debtors', '15000.00', 'CustA', 'Industrial Area', 'Rajasthan', '302013', '08AAACR1234F1Z5', 'Regular']]
+            subtitle: '(Standard Business Ledgers: Debtors, Creditors, Accounts & Tax)',
+            btnText: '📥 Download Masters Template',
+            genBtnText: '⚡ Generate Ledger_Masters XML',
+            headers: ['Ledger Name*', 'Group', 'Opening Balance (Dr)/Cr', 'Alias', 'Address Line 1', 'Country', 'State', 'PIN Code', 'GSTIN', 'Reg. Type'],
+            demoRows: [['Customer A Pvt Ltd', 'Sundry Debtors', '15000.00', 'CustA', 'Industrial Area', 'India', 'Rajasthan', '302013', '08AAACR1234F1Z5', 'Regular']]
         }
     };
+
+    function renderDemoTable(moduleKey) {
+        let conf = moduleConfig[moduleKey];
+        if (!conf) return;
+        document.getElementById('demoTableSubtitle').innerText = conf.subtitle;
+        let html = '<table class="demo-table"><thead><tr>';
+        conf.headers.forEach(h => html += `<th>${h}</th>`);
+        html += '</tr></thead><tbody>';
+        conf.demoRows.forEach(row => {
+            html += '<tr>';
+            row.forEach(cell => {
+                let cellStyle = cell ? '' : 'color: #cbd5e1;';
+                html += `<td style="${cellStyle}">${cell || '-'}</td>`;
+            });
+            html += '</tr>';
+        });
+        html += '</tbody></table>';
+        document.getElementById('demoTableContainer').innerHTML = html;
+    }
+
+    function switchTab(tab, el) {
+        currentTab = tab;
+        document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
+        if (el) el.classList.add('active');
+        
+        let centerModulePanel = document.getElementById('centerModulePanel');
+        let btnCenterGen = document.getElementById('btnCenterGen');
+        let fileNameDisplay = document.getElementById('fileNameDisplay');
+        let bankConfigBox = document.getElementById('centerBankConfig');
+
+        if(btnCenterGen) btnCenterGen.style.display = 'none';
+        if(fileNameDisplay) fileNameDisplay.innerText = 'Choose File';
+        excelData = [];
+
+        if (tab === 'Home') {
+            if(centerModulePanel) centerModulePanel.style.display = 'none';
+        } else {
+            if(centerModulePanel) centerModulePanel.style.display = 'block';
+
+            let conf = moduleConfig[tab];
+            document.getElementById('centerPanelTitle').innerText = conf.title;
+            document.getElementById('btnDownloadTemplate').innerText = conf.btnText;
+            document.getElementById('btnCenterGen').innerText = conf.genBtnText;
+
+            if (tab === 'Bank') {
+                if(bankConfigBox) bankConfigBox.style.display = 'block';
+            } else {
+                if(bankConfigBox) bankConfigBox.style.display = 'none';
+            }
+
+            renderDemoTable(tab);
+        }
+    }
     
-    // ... (Keep the renderDemoTable function and rest of the logic)
-</script>
+    function downloadTemplate() {
+        let wb = XLSX.utils.book_new();
+        let ws_data;
+        if (currentTab === 'Bank') ws_data = [["Date", "Vch Type", "Vch No", "Particulars", "Debit", "Credit", "Narration"], ["01-Apr-2026", "Receipt", "1", "Customer A", "", 5000, "Payment"]];
+        else if (currentTab === 'QuickEntry') ws_data = [["Date*", "Vouch No.", "Ref. No.", "Ref. Date", "Narration", "Voucher Type", "Ledger Name", "Amount (Dr)/Cr", "Sales", "Discount Allowed", "Freight", "IGST", "CGST", "SGST", "Round Off"], ["01-Apr-2025", 1, "", "", "Sale", "Sales", "Customer A", -11800, 10000, "", "", "", 900, 900, ""]];
+        else if (currentTab === 'Dual') ws_data = [["Date*", "Voucher Type*", "Vouch No.", "Ref. No.", "Ref. Date", "Debit*", "Credit*", "Amount*", "Narration"], ["01-Apr-2025", "Receipt", 1, "", "", "Cash", "Capital", 100000.00, "Capital"]];
+        else if (currentTab === 'Multi') {
+            let headers = ["Date*", "Type*", "Vouch No.", "Ref. No.", "Ref. Date", "Narration"];
+            for (let i = 1; i <= 14; i++) headers.push(`Ledger ${i}`, `Amount (Dr)/Cr`);
+            ws_data = [headers, ["01-Apr-2026", "Journal", 1, "", "", "Settlement", "RAM", -500, "KRISH", 250]];
+        } else if (currentTab === 'Masters') ws_data = [["Ledger Name*", "Group", "Opening Balance (Dr)/Cr", "Alias", "Address Line 1", "Country", "State", "PIN Code", "GSTIN", "Reg. Type"], ["Customer A Pvt Ltd", "Sundry Debtors", 15000, "CustA", "Area", "India", "Rajasthan", "302013", "08AAACR1234F1Z5", "Regular"]];
+        
+        let ws = XLSX.utils.aoa_to_sheet(ws_data);
+        XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+        XLSX.writeFile(wb, `${currentTab}_Template.xlsx`);
+    }
+    
+    function processExcel(e) {
+        let file = e.target.files[0];
+        if(file) document.getElementById('fileNameDisplay').innerText = file.name;
+        let reader = new FileReader();
+        reader.onload = function(e) {
+            let data = new Uint8Array(e.target.result);
+            let workbook = XLSX.read(data, {type: 'array', cellDates: true});
+            let firstSheet = workbook.SheetNames[0];
+            excelData = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], {raw: false, defval: ''});
+            if(excelData.length > 0) {
+                document.getElementById('btnCenterGen').style.display = 'block';
+                alert("Dataset parsed successfully! Click 'Generate Tally XML'.");
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function formatDate(val) {
+        if (!val) return '';
+        if (typeof val === 'number' && val > 20000 && val < 80000) {
+            let utcDays = Math.floor(val - 25569);
+            let dateInfo = new Date(utcDays * 86400 * 1000);
+            return `${dateInfo.getUTCFullYear()}${String(dateInfo.getUTCMonth() + 1).padStart(2, '0')}${String(dateInfo.getUTCDate()).padStart(2, '0')}`;
+        }
+        let d = new Date(val);
+        if (!isNaN(d.getTime())) return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+        return String(val).replace(/[-/]/g, '').trim();
+    }
+
+    function generateXML() {
+        let xml = `<ENVELOPE>\n<HEADER>\n<TALLYREQUEST>Import Data</TALLYREQUEST>\n</HEADER>\n<BODY>\n<IMPORTDATA>\n<REQUESTDESC>\n<REPORTNAME>All Masters</REPORTNAME>\n</REQUESTDESC>\n<REQUESTDATA>\n`;
+
+        if (currentTab === 'Bank') {
+            let defaultBank = (document.getElementById('defaultBankName').value || 'Bank Account').trim();
+            excelData.forEach(row => {
+                let rawDate = row['Date'] || '';
+                let formattedDate = formatDate(rawDate);
+                let vchType = row['Vch Type'] || '';
+                let vchNo = row['Vch No'] || '';
+                let particulars = row['Particulars'] || '';
+                let debit = parseAmount(row['Debit']);
+                let credit = parseAmount(row['Credit']);
+                let narration = row['Narration'] || '';
+
+                if (rawDate && vchType && particulars) {
+                    xml += `<TALLYMESSAGE xmlns:UDF="TallyUDF">\n<VOUCHER VCHTYPE="${escapeXML(vchType)}" ACTION="Create">\n<VOUCHERTYPENAME>${escapeXML(vchType)}</VOUCHERTYPENAME>\n<DATE>${formattedDate}</DATE>\n<NARRATION>${escapeXML(narration)}</NARRATION>\n<VOUCHERNUMBER>${escapeXML(vchNo)}</VOUCHERNUMBER>\n`;
+                    if (vchType.toLowerCase() === 'receipt') {
+                        xml += `<ALLLEDGERENTRIES.LIST><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><LEDGERNAME>${escapeXML(defaultBank)}</LEDGERNAME><AMOUNT>-${credit}</AMOUNT></ALLLEDGERENTRIES.LIST>\n`;
+                        xml += `<ALLLEDGERENTRIES.LIST><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><LEDGERNAME>${escapeXML(particulars)}</LEDGERNAME><AMOUNT>${credit}</AMOUNT></ALLLEDGERENTRIES.LIST>\n`;
+                    } else {
+                        xml += `<ALLLEDGERENTRIES.LIST><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><LEDGERNAME>${escapeXML(particulars)}</LEDGERNAME><AMOUNT>-${debit}</AMOUNT></ALLLEDGERENTRIES.LIST>\n`;
+                        xml += `<ALLLEDGERENTRIES.LIST><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><LEDGERNAME>${escapeXML(defaultBank)}</LEDGERNAME><AMOUNT>${debit}</AMOUNT></ALLLEDGERENTRIES.LIST>\n`;
+                    }
+                    xml += `</VOUCHER>\n</TALLYMESSAGE>\n`;
+                }
+            });
+        } else if (currentTab === 'Dual') {
+            excelData.forEach(row => {
+                let rawDate = row['Date*'] || row['Date'] || '';
+                let formattedDate = formatDate(rawDate);
+                let vchType = row['Voucher Type*'] || row['Voucher Type'] || '';
+                let vchNo = row['Vouch No.'] || row['Vouch No'] || '';
+                let drLedger = row['Debit*'] || row['Debit'] || '';
+                let crLedger = row['Credit*'] || row['Credit'] || '';
+                let amount = parseAmount(row['Amount*'] || row['Amount']);
+                let narration = row['Narration'] || '';
+
+                if (rawDate && vchType && drLedger && crLedger && amount > 0) {
+                    xml += `<TALLYMESSAGE xmlns:UDF="TallyUDF">\n<VOUCHER VCHTYPE="${escapeXML(vchType)}" ACTION="Create">\n<VOUCHERTYPENAME>${escapeXML(vchType)}</VOUCHERTYPENAME>\n<DATE>${formattedDate}</DATE>\n<NARRATION>${escapeXML(narration)}</NARRATION>\n<VOUCHERNUMBER>${escapeXML(vchNo)}</VOUCHERNUMBER>\n`;
+                    xml += `<ALLLEDGERENTRIES.LIST><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><LEDGERNAME>${escapeXML(drLedger)}</LEDGERNAME><AMOUNT>-${amount.toFixed(2)}</AMOUNT></ALLLEDGERENTRIES.LIST>\n`;
+                    xml += `<ALLLEDGERENTRIES.LIST><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><LEDGERNAME>${escapeXML(crLedger)}</LEDGERNAME><AMOUNT>${amount.toFixed(2)}</AMOUNT></ALLLEDGERENTRIES.LIST>\n`;
+                    xml += `</VOUCHER>\n</TALLYMESSAGE>\n`;
+                }
+            });
+        } else if (currentTab === 'QuickEntry') {
+            excelData.forEach((row, index) => {
+                let rawDate = row['Date*'] || row['Date'] || '';
+                let formattedDate = formatDate(rawDate);
+                let vchNo = row['Vouch No.'] || row['Vouch No'] || (index + 1);
+                let narration = row['Narration'] || '';
+                let vchType = row['Voucher Type'] || 'Sales';
+                let partyLedger = row['Ledger Name'] || '';
+                let partyManualAmt = parseAmount(row['Amount (Dr)/Cr']);
+
+                if (rawDate && partyLedger) {
+                    xml += `<TALLYMESSAGE xmlns:UDF="TallyUDF">\n<VOUCHER VCHTYPE="${escapeXML(vchType)}" ACTION="Create">\n<VOUCHERTYPENAME>${escapeXML(vchType)}</VOUCHERTYPENAME>\n<DATE>${formattedDate}</DATE>\n<NARRATION>${escapeXML(narration)}</NARRATION>\n<VOUCHERNUMBER>${escapeXML(vchNo)}</VOUCHERNUMBER>\n`;
+                    let totalPartyAmount = 0;
+                    let creditLedgers = ['Sales', 'Discount Allowed', 'Freight', 'IGST', 'CGST', 'SGST', 'Round Off'];
+                    let parsedEntries = [];
+
+                    creditLedgers.forEach(ledgerKey => {
+                        let amt = parseAmount(row[ledgerKey]);
+                        if (amt !== 0) { parsedEntries.push({ name: ledgerKey, amount: amt }); totalPartyAmount += amt; }
+                    });
+
+                    let finalPartyAmt = partyManualAmt !== 0 ? Math.abs(partyManualAmt) : totalPartyAmount;
+                    xml += `<ALLLEDGERENTRIES.LIST><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><LEDGERNAME>${escapeXML(partyLedger)}</LEDGERNAME><AMOUNT>-${finalPartyAmt.toFixed(2)}</AMOUNT></ALLLEDGERENTRIES.LIST>\n`;
+                    parsedEntries.forEach(entry => {
+                        xml += `<ALLLEDGERENTRIES.LIST><ISDEEMEDPOSITIVE>${entry.amount < 0 ? 'Yes' : 'No'}</ISDEEMEDPOSITIVE><LEDGERNAME>${escapeXML(entry.name)}</LEDGERNAME><AMOUNT>${entry.amount.toFixed(2)}</AMOUNT></ALLLEDGERENTRIES.LIST>\n`;
+                    });
+                    xml += `</VOUCHER>\n</TALLYMESSAGE>\n`;
+                }
+            });
+        } else if (currentTab === 'Multi') {
+            excelData.forEach((row, index) => {
+                let rawDate = row['Date*'] || row['Date'] || '';
+                let formattedDate = formatDate(rawDate);
+                let vchType = row['Type*'] || row['Type'] || 'Journal';
+                let vchNo = row['Vouch No.'] || (index + 1);
+                let narration = row['Narration'] || '';
+
+                if (rawDate) {
+                    let entries = [];
+                    for (let i = 1; i <= 20; i++) {
+                        let ledgerName = (row[`Ledger ${i}`] || '').trim();
+                        let amt = parseAmount(row[`Amount (Dr)/Cr_${i}`] || (i === 1 ? row['Amount (Dr)/Cr'] : ''));
+                        if (ledgerName && amt !== 0) entries.push({ ledger: ledgerName, amount: amt });
+                    }
+                    if (entries.length > 0) {
+                        xml += `<TALLYMESSAGE xmlns:UDF="TallyUDF">\n<VOUCHER VCHTYPE="${escapeXML(vchType)}" ACTION="Create">\n<VOUCHERTYPENAME>${escapeXML(vchType)}</VOUCHERTYPENAME>\n<DATE>${formattedDate}</DATE>\n<NARRATION>${escapeXML(narration)}</NARRATION>\n<VOUCHERNUMBER>${escapeXML(vchNo)}</VOUCHERNUMBER>\n`;
+                        entries.forEach(entry => {
+                            xml += `<ALLLEDGERENTRIES.LIST><ISDEEMEDPOSITIVE>${entry.amount < 0 ? 'Yes' : 'No'}</ISDEEMEDPOSITIVE><LEDGERNAME>${escapeXML(entry.ledger)}</LEDGERNAME><AMOUNT>${entry.amount.toFixed(2)}</AMOUNT></ALLLEDGERENTRIES.LIST>\n`;
+                        });
+                        xml += `</VOUCHER>\n</TALLYMESSAGE>\n`;
+                    }
+                }
+            });
+        } else if (currentTab === 'Masters') {
+            excelData.forEach(row => {
+                let name = (row['Ledger Name*'] || row['Ledger Name'] || '').trim();
+                let parent = (row['Group'] || 'Sundry Debtors').trim();
+                let state = (row['State'] || '').trim();
+                let pin = (row['PIN Code'] || '').trim();
+                let gstin = (row['GSTIN'] || '').trim();
+                let regType = (row['Reg. Type'] || 'Regular').trim();
+                let ob = parseAmount(row['Opening Balance (Dr)/Cr']);
+
+                if (name) {
+                    xml += `<TALLYMESSAGE xmlns:UDF="TallyUDF">\n<LEDGER NAME="${escapeXML(name)}" ACTION="Create">\n<NAME>${escapeXML(name)}</NAME>\n<PARENT>${escapeXML(parent)}</PARENT>\n`;
+                    if (state) xml += `<LEDSTATENAME>${escapeXML(state)}</LEDSTATENAME>\n`;
+                    if (pin) xml += `<PINCODE>${escapeXML(pin)}</PINCODE>\n`;
+                    if (gstin) xml += `<PARTYGSTIN>${escapeXML(gstin)}</PARTYGSTIN>\n`;
+                    if (regType) xml += `<GSTREGISTRATIONTYPE>${escapeXML(regType)}</GSTREGISTRATIONTYPE>\n`;
+                    if (ob !== 0) xml += `<OPENINGBALANCE>${ob.toFixed(2)}</OPENINGBALANCE>\n`;
+                    xml += `</LEDGER>\n</TALLYMESSAGE>\n`;
+                }
+            });
+        }
+
+        xml += `</REQUESTDATA>\n</IMPORTDATA>\n</BODY>\n</ENVELOPE>`;
+        let blob = new Blob([xml], {type: 'text/xml'});
+        let link = document.createElement('a');
+        link.href = window.URL.createObjectURL(blob);
+        link.download = `${currentTab}_Import.xml`;
+        link.click();
+    }
+  </script>
+
 </body>
 </html>
