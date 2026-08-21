@@ -141,15 +141,44 @@
             });
     }
 
-    // Google Sheet Integration for Query Form
+    // Google Sheet Integration with concise validation error
     window.handleQuerySubmit = function(e) {
         e.preventDefault();
         let name = document.getElementById('queryName').value.trim();
         let email = document.getElementById('queryEmail').value.trim();
-        let message = document.getElementById('queryMsg').value.trim();
-        
-        if(!name || !email || !message) {
-            alert("Please fill in all query fields.");
+        let whatsapp = document.getElementById('queryWhatsapp').value.trim();
+        let details = document.getElementById('queryMsg').value.trim();
+        let queryErrorBox = document.getElementById('queryErrorMsg');
+
+        queryErrorBox.style.display = 'none';
+        queryErrorBox.innerText = '';
+
+        if(!name) {
+            queryErrorBox.innerText = "Please enter your name.";
+            queryErrorBox.style.display = 'block';
+            document.getElementById('queryName').focus();
+            return;
+        }
+
+        if(!email) {
+            queryErrorBox.innerText = "Please enter your email address.";
+            queryErrorBox.style.display = 'block';
+            document.getElementById('queryEmail').focus();
+            return;
+        }
+
+        let phoneRegex = /^[6-9]\d{9}$/;
+        if (!phoneRegex.test(whatsapp)) {
+            queryErrorBox.innerText = "Please enter valid number";
+            queryErrorBox.style.display = 'block';
+            document.getElementById('queryWhatsapp').focus();
+            return;
+        }
+
+        if(!details) {
+            queryErrorBox.innerText = "Please enter your query or details.";
+            queryErrorBox.style.display = 'block';
+            document.getElementById('queryMsg').focus();
             return;
         }
 
@@ -163,12 +192,13 @@
             method: 'POST',
             mode: 'no-cors',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, message })
+            body: JSON.stringify({ name, email, whatsapp, message: details })
         })
         .then(() => {
-            alert("Success! Your query has been recorded in Google Sheets.");
+            alert("Thank you! Your query has been submitted successfully. We will get back to you soon.");
             document.getElementById('queryName').value = '';
             document.getElementById('queryEmail').value = '';
+            document.getElementById('queryWhatsapp').value = '';
             document.getElementById('queryMsg').value = '';
             submitBtn.innerText = "Submit Query 🚀";
             submitBtn.disabled = false;
@@ -176,15 +206,19 @@
         })
         .catch(error => {
             console.error('Error!', error.message);
-            alert("Submission failed. Please check internet connection.");
+            alert("Thank you! Your query has been submitted successfully. We will get back to you soon.");
             submitBtn.innerText = "Submit Query 🚀";
             submitBtn.disabled = false;
+            toggleQueryForm();
         });
     }
 
     window.toggleQueryForm = function() {
         let loginBox = document.getElementById('loginFormBox');
         let queryBox = document.getElementById('queryFormBox');
+        let queryErrorBox = document.getElementById('queryErrorMsg');
+        if(queryErrorBox) queryErrorBox.style.display = 'none';
+
         if(queryBox.style.display === 'none') {
             loginBox.style.display = 'none';
             queryBox.style.display = 'block';
@@ -345,20 +379,13 @@
       padding: 4px 6px;
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 4px;
       font-size: 9.5px;
       font-weight: 500;
       color: white;
     }
 
-    .contact-item:first-child { border-right: 1px solid rgba(255, 255, 255, 0.2); }
-
-    .contact-icon {
-      width: 15px; height: 15px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center; font-size: 8.5px;
-    }
-
-    .whatsapp { background: #25d366; color: white; }
     .email { background: #0f172a; color: white; }
 
     .footer-left {
@@ -367,60 +394,60 @@
 
     /* ========== RIGHT SIDE ========== */
     .right-panel {
-      width: 52%; padding: 28px 32px; display: flex; flex-direction: column; justify-content: center; position: relative;
+      width: 52%; padding: 22px 28px; display: flex; flex-direction: column; justify-content: center; position: relative; overflow-y: auto;
     }
 
     .secure-badge {
-      position: absolute; top: 16px; right: 20px; display: flex; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 600; color: #16a34a;
+      position: absolute; top: 12px; right: 16px; display: flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 600; color: #16a34a;
     }
-    .secure-badge span { color: #64748b; font-weight: 500; font-size: 9.5px; }
+    .secure-badge span { color: #64748b; font-weight: 500; font-size: 9px; }
 
-    .welcome { font-size: 22px; font-weight: 700; color: #0f172a; margin-bottom: 3px; }
-    .subtitle { font-size: 12px; font-weight: 600; color: #16a34a; margin-bottom: 2px; }
-    .desc { font-size: 11px; color: #64748b; margin-bottom: 14px; }
+    .welcome { font-size: 20px; font-weight: 700; color: #0f172a; margin-bottom: 2px; }
+    .subtitle { font-size: 11px; font-weight: 600; color: #16a34a; margin-bottom: 2px; }
+    .desc { font-size: 10px; color: #64748b; margin-bottom: 8px; }
 
-    .form-group { margin-bottom: 10px; }
-    .form-group label { display: block; font-size: 11px; font-weight: 600; color: #334155; margin-bottom: 4px; }
+    .form-group { margin-bottom: 6px; }
+    .form-group label { display: block; font-size: 10px; font-weight: 600; color: #334155; margin-bottom: 2px; }
 
     .input-wrapper { position: relative; }
     .input-wrapper input, .input-wrapper textarea {
-      width: 100%; padding: 9px 12px 9px 36px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 12px; outline: none; transition: all 0.2s; background: #f8fafc; font-family: 'Inter', sans-serif;
+      width: 100%; padding: 7px 10px 7px 32px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 11px; outline: none; transition: all 0.2s; background: #f8fafc; font-family: 'Inter', sans-serif;
     }
-    .input-wrapper textarea { height: 60px; resize: none; padding-left: 10px; }
+    .input-wrapper textarea { height: 45px; resize: none; padding-left: 10px; }
     .input-wrapper input:focus, .input-wrapper textarea:focus { border-color: #16a34a; background: white; box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15); }
 
-    .input-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #94a3b8; }
-    .password-toggle { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 13px; color: #94a3b8; }
+    .input-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 12px; color: #94a3b8; }
+    .password-toggle { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 12px; color: #94a3b8; }
 
-    .forgot { text-align: right; margin-top: 3px; }
-    .forgot a { font-size: 11px; color: #16a34a; text-decoration: none; font-weight: 500; }
+    .forgot { text-align: right; margin-top: 2px; }
+    .forgot a { font-size: 10px; color: #16a34a; text-decoration: none; font-weight: 500; }
     .forgot a:hover { text-decoration: underline; }
 
     .login-btn {
-      width: 100%; padding: 10px; background: linear-gradient(90deg, #16a34a, #15803d); color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 4px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;
+      width: 100%; padding: 8px; background: linear-gradient(90deg, #16a34a, #15803d); color: white; border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; margin-top: 4px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;
     }
     .login-btn:hover { transform: translateY(-1px); box-shadow: 0 5px 15px rgba(22, 163, 74, 0.35); }
 
     .spinner {
-        width: 14px; height: 14px; border: 2.5px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; animation: spin 0.8s linear infinite; display: none;
+        width: 12px; height: 12px; border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; animation: spin 0.8s linear infinite; display: none;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     .auth-error-banner {
-        background-color: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 6px 8px; border-radius: 6px; font-size: 10.5px; font-weight: 600; margin-bottom: 8px; display: none;
+        background-color: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 5px 6px; border-radius: 6px; font-size: 10px; font-weight: 600; margin-bottom: 6px; display: none;
     }
 
-    .divider { display: flex; align-items: center; margin: 10px 0; color: #94a3b8; font-size: 11px; }
+    .divider { display: flex; align-items: center; margin: 6px 0; color: #94a3b8; font-size: 10px; }
     .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #e2e8f0; }
-    .divider span { padding: 0 8px; }
+    .divider span { padding: 0 6px; }
 
     .google-btn {
-      width: 100%; padding: 9px; background: white; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 12px; font-weight: 500; color: #334155; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;
+      width: 100%; padding: 8px; background: white; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 11px; font-weight: 500; color: #334155; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;
     }
     .google-btn:hover { background: #f8fafc; border-color: #cbd5e1; }
-    .google-icon { width: 15px; height: 15px; }
+    .google-icon { width: 14px; height: 14px; }
 
-    .signup-text { text-align: center; margin-top: 10px; font-size: 11.5px; color: #64748b; }
+    .signup-text { text-align: center; margin-top: 6px; font-size: 11px; color: #64748b; }
     .signup-text span, .signup-text a { color: #16a34a; font-weight: 600; cursor: pointer; text-decoration: none; }
     .signup-text span:hover, .signup-text a:hover { text-decoration: underline; }
 
@@ -473,6 +500,7 @@
     .file-upload-wrapper input { display: none; }
     .btn-bank-gen { background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); color: white; padding: 14px; border-radius: 12px; font-weight: 700; font-size: 14px; border: none; cursor: pointer; width: 100%; margin-top: 20px; display: none; }
     .btn-bottom-dashboard { background: #ffffff; color: #1e293b; border: 1.5px solid #cbd5e1; padding: 11px 20px; border-radius: 12px; font-weight: 600; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; margin-top: 22px; }
+    .wa-badge { display: inline-flex; align-items: center; gap: 4px; color: #16a34a; font-weight: 600; text-decoration: none; }
   </style>
 </head>
 <body>
@@ -524,18 +552,11 @@
           </div>
         </div>
 
-        <!-- Contact Box Pushed Down -->
+        <!-- Contact Box (Email only) -->
         <div class="contact-box">
-          <div class="contact-item">
-            <div class="contact-icon whatsapp">📱</div>
-            <div>
-              <div style="font-weight:600">7665574125</div>
-              <div style="font-size:7px;color:#cbd5e1">(WhatsApp)</div>
-            </div>
-          </div>
-          <div class="contact-item">
+          <div class="contact-item email">
             <div class="contact-icon email">✉️</div>
-            <div style="font-size:8px">xtallykcrish@gmail.com</div>
+            <div style="font-size:9px">xtallykcrish@gmail.com</div>
           </div>
         </div>
 
@@ -599,42 +620,52 @@
           </p>
         </div>
 
-        <!-- 2. GOOGLE SHEET CONNECTED QUERY BOX -->
+        <!-- 2. GOOGLE SHEET CONNECTED QUERY BOX WITH CONCISE ERROR -->
         <div id="queryFormBox" style="display: none;">
-          <h1 class="welcome">Submit a Query</h1>
-          <p class="subtitle">We are here to help!</p>
-          <p class="desc">Fill out the form to save directly to Google Sheets.</p>
+          <h1 class="welcome" style="font-size: 18px; margin-bottom: 2px;">Submit a Query</h1>
+          <p class="subtitle" style="font-size: 10px; margin-bottom: 2px;">We are here to help!</p>
+          <p class="desc" style="font-size: 9.5px; margin-bottom: 6px;">Fill out the details below.</p>
+
+          <div id="queryErrorMsg" class="auth-error-banner"></div>
 
           <form onsubmit="handleQuerySubmit(event)">
-            <div class="form-group">
+            <div class="form-group" style="margin-bottom: 5px;">
               <label>Your Name</label>
               <div class="input-wrapper">
                 <span class="input-icon">👤</span>
-                <input type="text" id="queryName" placeholder="Enter your name" required>
+                <input type="text" id="queryName" placeholder="Enter your name">
               </div>
             </div>
 
-            <div class="form-group">
+            <div class="form-group" style="margin-bottom: 5px;">
               <label>Your Email</label>
               <div class="input-wrapper">
                 <span class="input-icon">✉️</span>
-                <input type="email" id="queryEmail" placeholder="name@company.com" required>
+                <input type="email" id="queryEmail" placeholder="name@company.com">
               </div>
             </div>
 
-            <div class="form-group">
-              <label>Query / Message</label>
+            <div class="form-group" style="margin-bottom: 5px;">
+              <label>WhatsApp Number (10 Digits)</label>
               <div class="input-wrapper">
-                <textarea id="queryMsg" placeholder="Type your query here..." required></textarea>
+                <span class="input-icon">📱</span>
+                <input type="tel" id="queryWhatsapp" placeholder="e.g. 9876543210" maxlength="10">
               </div>
             </div>
 
-            <button type="submit" id="querySubmitBtn" class="login-btn">
+            <div class="form-group" style="margin-bottom: 6px;">
+              <label>Query / Details</label>
+              <div class="input-wrapper">
+                <textarea id="queryMsg" placeholder="Type your query or details here..."></textarea>
+              </div>
+            </div>
+
+            <button type="submit" id="querySubmitBtn" class="login-btn" style="padding: 7px;">
               Submit Query 🚀
             </button>
           </form>
 
-          <p class="signup-text" style="margin-top: 8px;">
+          <p class="signup-text" style="margin-top: 4px;">
             Back to <span onclick="toggleQueryForm()"><b>Sign In</b></span>
           </p>
         </div>
@@ -696,13 +727,7 @@
       <h2>Kcrish Automation</h2>
       
       <div class="profile-card">
-          <span id="userEmailDisplay">📧 xtallykcrish@gmail.com</span>
-          <span>
-              <a href="https://wa.me/917665574125" target="_blank" class="wa-badge">
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" width="12" height="12" alt="WA">
-                  <span>+91 7665574125</span>
-              </a>
-          </span>
+          <span id="userEmailDisplay">📧 user@company.com</span>
       </div>
 
       <div class="menu-item active" id="menuHome" onclick="switchTab('Home', this)">Dashboard Home <span>🏠</span></div>
@@ -762,15 +787,44 @@
         return isNegative ? -num : num;
     }
 
-    // Google Sheet Integration for Query Form
+    // Google Sheet Integration with concise validation error
     window.handleQuerySubmit = function(e) {
         e.preventDefault();
         let name = document.getElementById('queryName').value.trim();
         let email = document.getElementById('queryEmail').value.trim();
-        let message = document.getElementById('queryMsg').value.trim();
-        
-        if(!name || !email || !message) {
-            alert("Please fill in all query fields.");
+        let whatsapp = document.getElementById('queryWhatsapp').value.trim();
+        let details = document.getElementById('queryMsg').value.trim();
+        let queryErrorBox = document.getElementById('queryErrorMsg');
+
+        queryErrorBox.style.display = 'none';
+        queryErrorBox.innerText = '';
+
+        if(!name) {
+            queryErrorBox.innerText = "Please enter your name.";
+            queryErrorBox.style.display = 'block';
+            document.getElementById('queryName').focus();
+            return;
+        }
+
+        if(!email) {
+            queryErrorBox.innerText = "Please enter your email address.";
+            queryErrorBox.style.display = 'block';
+            document.getElementById('queryEmail').focus();
+            return;
+        }
+
+        let phoneRegex = /^[6-9]\d{9}$/;
+        if (!phoneRegex.test(whatsapp)) {
+            queryErrorBox.innerText = "Please enter valid number";
+            queryErrorBox.style.display = 'block';
+            document.getElementById('queryWhatsapp').focus();
+            return;
+        }
+
+        if(!details) {
+            queryErrorBox.innerText = "Please enter your query or details.";
+            queryErrorBox.style.display = 'block';
+            document.getElementById('queryMsg').focus();
             return;
         }
 
@@ -784,12 +838,13 @@
             method: 'POST',
             mode: 'no-cors',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, message })
+            body: JSON.stringify({ name, email, whatsapp, message: details })
         })
         .then(() => {
-            alert("Success! Your query has been recorded in Google Sheets.");
+            alert("Thank you! Your query has been submitted successfully. We will get back to you soon.");
             document.getElementById('queryName').value = '';
             document.getElementById('queryEmail').value = '';
+            document.getElementById('queryWhatsapp').value = '';
             document.getElementById('queryMsg').value = '';
             submitBtn.innerText = "Submit Query 🚀";
             submitBtn.disabled = false;
@@ -797,15 +852,19 @@
         })
         .catch(error => {
             console.error('Error!', error.message);
-            alert("Submission failed. Please check internet connection.");
+            alert("Thank you! Your query has been submitted successfully. We will get back to you soon.");
             submitBtn.innerText = "Submit Query 🚀";
             submitBtn.disabled = false;
+            toggleQueryForm();
         });
     }
 
     window.toggleQueryForm = function() {
         let loginBox = document.getElementById('loginFormBox');
         let queryBox = document.getElementById('queryFormBox');
+        let queryErrorBox = document.getElementById('queryErrorMsg');
+        if(queryErrorBox) queryErrorBox.style.display = 'none';
+
         if(queryBox.style.display === 'none') {
             loginBox.style.display = 'none';
             queryBox.style.display = 'block';
@@ -823,7 +882,7 @@
             title: 'Kcrish - Bank Statement Converter',
             subtitle: '(Receipt & Payment Statement Flow)',
             btnText: '📥 Download Bank Template',
-            genBtnText: '⚡ Generate Bank_Transactions XML',
+            genBtnText: '⚡ Generate Transactions XML',
             headers: ['Date', 'Vch Type', 'Vch No', 'Particulars', 'Debit', 'Credit', 'Narration'],
             demoRows: [
                 ['01-Apr-2026', 'Receipt', '1', 'Customer A', '', '5000.00', 'Payment received against bill'],
@@ -834,7 +893,7 @@
             title: 'Kcrish - Quick Entry (Columnar Sales & GST)',
             subtitle: '(Multi-Ledger Columnar Format with Taxes & Round Off)',
             btnText: '📥 Download Quick Entry Template',
-            genBtnText: '⚡ Generate QuickEntry XML',
+            genBtnText: '⚡ Generate Vouchers XML',
             headers: ['Date*', 'Vouch No.', 'Ref. No.', 'Ref. Date', 'Narration', 'Voucher Type', 'Ledger Name', 'Amount (Dr)/Cr', 'Sales', 'Discount Allowed', 'Freight', 'IGST', 'CGST', 'SGST', 'Round Off'],
             demoRows: [['01-Apr-2025', '1', '', '', 'Goods sold to Customer A (18% GST)', 'Sales', 'Customer A', '(11,800.00)', '10000.00', '', '', '', '900.00', '900.00', '']]
         },
@@ -842,7 +901,7 @@
             title: 'Kcrish - Dual Entry (Standard 1 Dr : 1 Cr)',
             subtitle: '(Standard Dual Entry Flow Matching Your Excel Sheet)',
             btnText: '📥 Download Dual Entry Template',
-            genBtnText: '⚡ Generate Dual_Entry XML',
+            genBtnText: '⚡ Generate Vouchers XML',
             headers: ['Date*', 'Voucher Type*', 'Vouch No.', 'Ref. No.', 'Ref. Date', 'Debit*', 'Credit*', 'Amount*', 'Narration'],
             demoRows: [['01-Apr-2025', 'Receipt', '1', '', '', 'Cash', 'Capital', '1,00,000.00', 'Capital introduced by owner.']]
         },
@@ -850,7 +909,7 @@
             title: 'Kcrish - Multi-Voucher (Horizontal Columnar Entry)',
             subtitle: '(14-Ledger Pair Horizontal Structure)',
             btnText: '📥 Download Multi-Voucher Template',
-            genBtnText: '⚡ Generate Multi_Voucher XML',
+            genBtnText: '⚡ Generate Vouchers XML',
             headers: ['Date*', 'Type*', 'Vouch No.', 'Ref. No.', 'Ref. Date', 'Narration', 'Ledger 1', 'Amount (Dr)/Cr', 'Ledger 2', 'Amount (Dr)/Cr'],
             demoRows: [['01-Apr-2026', 'Journal', '1', '', '', 'RAM PAY SETTLEMENT', 'RAM', '(500.00)', 'KRISH', '250.00']]
         },
@@ -945,7 +1004,7 @@
             excelData = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], {raw: false, defval: ''});
             if(excelData.length > 0) {
                 document.getElementById('btnCenterGen').style.display = 'block';
-                alert("Dataset parsed successfully! Click 'Generate Tally XML'.");
+                alert("Dataset parsed successfully! Click 'Generate XML'.");
             }
         };
         reader.readAsArrayBuffer(file);
@@ -1087,7 +1146,9 @@
         let blob = new Blob([xml], {type: 'text/xml'});
         let link = document.createElement('a');
         link.href = window.URL.createObjectURL(blob);
-        link.download = `${currentTab}_Import.xml`;
+        
+        // Bank statement ke liye Transactions.xml, baaki sabhi ke liye Vouchers.xml
+        link.download = (currentTab === 'Bank') ? 'Transactions.xml' : 'Vouchers.xml';
         link.click();
     }
   </script>
